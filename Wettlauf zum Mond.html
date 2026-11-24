@@ -1,0 +1,376 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Wettlauf zum Mond</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: Leitstand-Konsole oben (Anzeigetafel, Jahresleiste, Ereignis mit Zeichnung), darunter das komplette Verzeichnis nach Kapiteln. Bewusst nur dunkles Design, passend zur Präsentation. */
+:root{
+  --bg:#06080F; --panel:#0C111D; --panel2:#121A2C; --line:#232D45; --ink:#DCE3F2; --muted:#8E98B1; --faint:#46516D;
+  --su:#FF5B4F; --us:#4DA6FF; --de:#E3AE4A; --int:#B3BDD1; --both:#B793FF; --gold:#F3C64B;
+  --earth:#14335C; --land:#3E8A6C; --moon:#2B303D; --sol:#1C3357;
+  --f-d:"Chakra Petch","Bahnschrift","Arial Narrow",sans-serif;
+  --f-b:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-m:"IBM Plex Mono",ui-monospace,"Consolas",monospace;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-b);font-size:16px;line-height:1.55;
+  background-image:radial-gradient(1px 1px at 12% 18%,#ffffff55 50%,transparent 51%),radial-gradient(1px 1px at 78% 9%,#ffffff44 50%,transparent 51%),radial-gradient(1px 1px at 41% 63%,#ffffff33 50%,transparent 51%),radial-gradient(1px 1px at 88% 72%,#ffffff40 50%,transparent 51%),radial-gradient(1px 1px at 23% 88%,#ffffff33 50%,transparent 51%);
+  background-attachment:fixed}
+.wrap{max-width:1000px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px;display:flex;flex-direction:column;gap:28px}
+header .kicker{font:500 12px var(--f-m);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h1{font:700 clamp(2rem,6vw,3.2rem)/1.05 var(--f-d);margin:.25rem 0 .5rem;letter-spacing:.01em;text-wrap:balance}
+header p{margin:0;color:var(--muted);max-width:62ch}
+.names{font:500 13px var(--f-m);color:var(--muted);margin-top:.6rem}
+
+/* Konsole */
+.console{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.board{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:16px 18px;background:#05070C;border-bottom:1px solid var(--line)}
+.board .side{font:600 15px var(--f-d);letter-spacing:.08em}
+.board .su{color:var(--su)} .board .us{color:var(--us);text-align:right}
+.score{font:600 clamp(2rem,7vw,2.8rem)/1 var(--f-m);font-variant-numeric:tabular-nums;letter-spacing:.04em;text-align:center}
+.score .n1{color:var(--su);text-shadow:0 0 14px #ff5b4f66} .score .n2{color:var(--us);text-shadow:0 0 14px #4da6ff66} .score .sep{color:var(--faint);margin:0 .15em}
+.score span{display:inline-block;transition:transform .25s}
+.score .bump{transform:scale(1.25)}
+.boardcap{grid-column:1/-1;text-align:center;font:500 11px var(--f-m);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.boardcap b{color:var(--ink);font-weight:500}
+
+.chap{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:14px 18px 6px;font:500 12px var(--f-m);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chap b{color:var(--ink);font-weight:600}
+.rail{display:flex;gap:6px;overflow-x:auto;padding:6px 18px 14px;scrollbar-width:thin;scroll-behavior:smooth}
+.yr{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 10px 7px;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:8px;font:500 14px var(--f-m);cursor:pointer}
+.yr:hover{color:var(--ink);border-color:var(--faint)}
+.yr[aria-current="true"]{background:var(--panel2);color:var(--ink);border-color:var(--ink)}
+.dots{display:flex;gap:3px} .dots i{width:6px;height:6px;border-radius:50%;display:block}
+.yr:focus-visible,.tab:focus-visible,.nav button:focus-visible,.row:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.tabs{display:flex;flex-wrap:wrap;gap:6px;padding:0 18px 12px}
+.tab{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:5px 12px;font:500 13px var(--f-b);cursor:pointer}
+.tab[aria-current="true"]{color:var(--bg);background:var(--c);border-color:var(--c)}
+
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;padding:6px 18px 20px;border-top:1px solid var(--line);padding-top:20px}
+@media (max-width:760px){.stage{grid-template-columns:minmax(0,1fr)}}
+.fig{position:relative;aspect-ratio:16/9;max-width:100%;border:1px solid var(--line);border-radius:10px;overflow:hidden;color:var(--c);
+  background-color:#080C17;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:20px 20px;touch-action:pan-y}
+.fig svg{display:block;width:100%;height:100%}
+.fig .note{position:absolute;right:8px;bottom:6px;font:400 10px var(--f-m);color:var(--faint)}
+.info{display:flex;flex-direction:column;gap:12px;min-width:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font:500 13px var(--f-m);color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;color:var(--c);border:1px solid var(--c);border-radius:999px;padding:2px 10px;font:600 12px var(--f-b);letter-spacing:.04em}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--c)}
+.info h2{font:600 clamp(1.35rem,3.6vw,1.75rem)/1.15 var(--f-d);margin:0;text-wrap:balance}
+.info p{margin:0;max-width:62ch}
+.prem{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:#F3C64B14;border:1px solid #F3C64B55;color:var(--gold);font:500 13px var(--f-b)}
+.prem b{font:600 13px var(--f-m)}
+.nav{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:6px}
+.nav button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 14px;font:500 14px var(--f-b);cursor:pointer}
+.nav button:hover:not(:disabled){border-color:var(--faint)}
+.nav button:disabled{opacity:.35;cursor:default}
+.nav .count{font:500 13px var(--f-m);color:var(--muted);font-variant-numeric:tabular-nums;margin:0 auto}
+
+/* SVG-Zeichnungen */
+.fig .s{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+.fig .f{fill:#0F1626;stroke:var(--ink);stroke-width:1.6;stroke-linejoin:round}
+.fig .a{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.fig .af{fill:currentColor;stroke:none}
+.fig .o{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:4 4}
+.fig .earth{fill:var(--earth);stroke:var(--ink);stroke-width:1.4}
+.fig .land{fill:none;stroke:var(--land);stroke-width:2.4;stroke-linecap:round}
+.fig .moon{fill:var(--moon);stroke:var(--ink);stroke-width:1.4}
+.fig .cr{fill:none;stroke:var(--faint);stroke-width:1.2}
+.fig .dot{fill:var(--ink)}
+.fig .hill{fill:#121828;stroke:var(--ink);stroke-width:1.4}
+.fig .tun{fill:#000;stroke:var(--ink);stroke-width:1.4}
+.fig .sol{fill:var(--sol);stroke:var(--ink);stroke-width:1.2}
+.fig .sun{fill:var(--gold)}
+.fig .shade{fill:#06080FCC}
+.fig .belt{fill:none;stroke:currentColor;stroke-width:8;opacity:.3}
+.fig .tag{fill:none;stroke:var(--su);stroke-width:1.6}
+.fig .tagt{fill:var(--su);font:600 14px var(--f-m)}
+.fig text.l{fill:var(--muted);font:500 10px var(--f-m)}
+.fig text.lb{fill:var(--ink);font:600 11.5px var(--f-b)}
+.fig text.eq{fill:var(--ink);font:500 16px var(--f-m)}
+.fig text.la{fill:currentColor;font:600 10.5px var(--f-m)}
+
+/* Verzeichnis */
+section h3{font:600 1.25rem var(--f-d);margin:0 0 12px}
+.hint{color:var(--muted);margin:-4px 0 16px;font-size:14px}
+.chapters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 28px}
+@media (max-width:760px){.chapters{grid-template-columns:minmax(0,1fr)}}
+.chapters h4{font:500 12px var(--f-m);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.chapters ul{list-style:none;margin:0;padding:0}
+.row{display:grid;grid-template-columns:7.2em 10px minmax(0,1fr) 1.2em;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-radius:6px;color:var(--ink);padding:6px 6px;font:400 14.5px var(--f-b);cursor:pointer}
+.row:hover{background:var(--panel)}
+.row[aria-current="true"]{background:var(--panel2)}
+.row .d{font:400 12.5px var(--f-m);color:var(--muted);font-variant-numeric:tabular-nums}
+.row i{width:8px;height:8px;border-radius:50%;display:block}
+.row .st{color:var(--gold);font-size:13px;text-align:right}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border-top:2px solid var(--line);padding-top:10px}
+.stat b{display:block;font:600 1.9rem/1.1 var(--f-d);font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:14px}
+.stat.fin b{color:var(--gold)}
+.punch{margin:16px 0 0;color:var(--muted);max-width:68ch}
+
+footer{border-top:1px solid var(--line);padding-top:18px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:10px}
+footer ul{margin:0;padding-left:1.1em;display:grid;gap:3px}
+footer a{color:var(--ink);text-decoration-color:var(--faint);overflow-wrap:anywhere}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font:500 12.5px var(--f-m);color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:8px;height:8px;border-radius:50%;display:block}
+@media (prefers-reduced-motion:reduce){.score span{transition:none}.rail{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="kicker">Projektkurs Astronomie · Q2 · Handout</div>
+    <h1>Wettlauf zum Mond</h1>
+    <p>Die Geschichte der Raumfahrt von den ersten Raketen bis zu den Apollo-Missionen. Tippe auf eine Jahreszahl, um zu sehen, was passiert ist. Die Anzeigetafel zählt mit, wer welche Weltraum-Premiere geholt hat.</p>
+    <div class="names">Julius · Nico · Paul · Frederik</div>
+  </header>
+
+  <div class="console" id="console">
+    <div class="board" aria-live="polite">
+      <div class="side su">UdSSR</div>
+      <div class="score"><span class="n1" id="s1">0</span><span class="sep">:</span><span class="n2" id="s2">0</span></div>
+      <div class="side us">USA</div>
+      <div class="boardcap">Space Race · Weltraum-Premieren · Stand nach <b id="capt">–</b></div>
+    </div>
+    <div class="chap"><span>Kapitel <b id="chapn"></b></span><span id="chapt"></span></div>
+    <div class="rail" id="rail" role="toolbar" aria-label="Jahreszahlen"></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="stage" id="stage">
+      <div class="fig" id="fig" aria-hidden="true"></div>
+      <div class="info">
+        <div class="meta"><span class="pill" id="pill"><i></i><span></span></span><span id="date"></span></div>
+        <h2 id="title"></h2>
+        <p id="text"></p>
+        <div class="prem" id="prem" hidden><span>★</span><span>Weltraum-Premiere · <b id="premw"></b></span></div>
+        <div class="nav">
+          <button id="prev" type="button">← Zurück</button>
+          <span class="count" id="count"></span>
+          <button id="next" type="button">Weiter →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h3>Alle Ereignisse</h3>
+    <p class="hint">Nach den Kapiteln der Präsentation. ★ = Weltraum-Premiere, die auf der Anzeigetafel einen Punkt bringt.</p>
+    <div class="legend" style="margin-bottom:16px">
+      <span><i style="background:var(--su)"></i>UdSSR / Russland</span>
+      <span><i style="background:var(--us)"></i>USA</span>
+      <span><i style="background:var(--de)"></i>Deutschland</span>
+      <span><i style="background:var(--both)"></i>USA &amp; UdSSR</span>
+      <span><i style="background:var(--int)"></i>Frankreich</span>
+    </div>
+    <div class="chapters" id="chapters"></div>
+  </section>
+
+  <section>
+    <h3>Bilanz</h3>
+    <div class="stats">
+      <div class="stat"><b>12</b><span>Menschen auf dem Mond</span></div>
+      <div class="stat"><b>6</b><span>Mondlandungen</span></div>
+      <div class="stat"><b>382 kg</b><span>Mondgestein</span></div>
+      <div class="stat fin"><b>11 : 5</b><span>Endstand der Premieren</span></div>
+    </div>
+    <p class="punch">11 zu 5 für die Sowjetunion, und trotzdem haben die USA den Wettlauf gewonnen. Die UdSSR holte die meisten Premieren, die USA erreichten das Ziel, das am Ende zählte. Der Spielstand ist ein Gedankenspiel unserer Gruppe, keine offizielle Wertung.</p>
+  </section>
+
+  <footer>
+    <div><b style="color:var(--ink)">Bilder:</b> Alle Zeichnungen sind eigene schematische Darstellungen, nicht maßstäblich.</div>
+    <div><b style="color:var(--ink)">Wichtige Quellen</b> (vollständige Liste in der Präsentation):</div>
+    <ul>
+      <li><a href="https://www.nasa.gov/history/" target="_blank" rel="noopener">NASA History Office – nasa.gov/history</a></li>
+      <li><a href="https://www.nasa.gov/history/alsj/a11/a11.landing.html" target="_blank" rel="noopener">Apollo Lunar Surface Journal – Landung Apollo 11</a></li>
+      <li><a href="https://www.dlr.de/de/next/raumfahrt/sonnensystem/mission-apollo-11-mond-special/die-erste-mondlandung" target="_blank" rel="noopener">DLR next – Die erste Mondlandung</a></li>
+      <li><a href="https://www.bpb.de/kurz-knapp/hintergrund-aktuell/273326/60-jahre-nasa-der-lange-weg-in-den-weltraum/" target="_blank" rel="noopener">bpb – 60 Jahre NASA</a></li>
+      <li><a href="https://www.esa.int/About_Us/ESA_history/Europeans_in_Apollo_First_flag_on_the_Moon" target="_blank" rel="noopener">ESA – Europeans in Apollo</a></li>
+      <li><a href="https://www.nordhausen-im-ns.de/en/konzentrationslager-und-zwangsarbeit/mittelbau-dora" target="_blank" rel="noopener">Mittelbau-Dora – Nordhausen im Nationalsozialismus</a></li>
+      <li><a href="https://www.russianspaceweb.com/r7.html" target="_blank" rel="noopener">RussianSpaceWeb – R-7</a></li>
+      <li><a href="https://www.smithsonianmag.com/air-space-magazine/belka-and-strelka-soviet-space-celebrities-180956299/" target="_blank" rel="noopener">Smithsonian – Belka und Strelka</a></li>
+      <li><a href="https://science.nasa.gov/mission/voyager/fact-sheet/" target="_blank" rel="noopener">NASA Science – Voyager Fact Sheet</a></li>
+    </ul>
+    <div>Projektkurs Astronomie Q2 · Julius, Nico, Paul, Frederik</div>
+  </footer>
+</div>
+
+<script>
+const CH=["Visionäre und Vorläufer","Zweiter Weltkrieg (V2)","Kalter Krieg und Sputnik-Schock","Sonden und Tierflüge","Die ersten bemannten Flüge","Woschod und Gemini","Rückschläge und erste Apollo-Flüge","Apollo 11","Weitere Apollo-Missionen","Nach Apollo"];
+const CO={su:["UdSSR","var(--su)"],ru:["Russland","var(--su)"],us:["USA","var(--us)"],de:["Deutschland","var(--de)"],fr:["Frankreich","var(--int)"],both:["USA & UdSSR","var(--both)"]};
+
+const EV=[
+{id:"verne",y:1865,d:"1865",ch:0,c:"fr",t:"Von der Erde zum Mond",img:"verne",x:"Jules Verne schreibt einen Roman, in dem drei Männer mit einer riesigen Kanone zum Mond geschossen werden. Die Physik stimmt nicht, aber das Buch begeistert spätere Raketenpioniere wie Ziolkowski und Wernher von Braun."},
+{id:"ziolkowski",y:1903,d:"1903",ch:0,c:"ru",t:"Ziolkowskis Raketengleichung",img:"ziol",x:"Der russische Lehrer Konstantin Ziolkowski berechnet als Erster, wie eine Rakete im Weltraum funktioniert. Seine Gleichung zeigt: Für sehr hohe Geschwindigkeiten braucht man mehrstufige Raketen, die leere Stufen abwerfen. „Die Erde ist die Wiege der Menschheit, aber man kann nicht ewig in der Wiege bleiben.“"},
+{id:"goddard",y:1926,d:"16.03.1926",ch:0,c:"us",t:"Die erste Flüssigkeitsrakete",img:"goddard",x:"Robert Goddard startet in Massachusetts die erste Rakete mit flüssigem Treibstoff. Sie fliegt nur 2,5 Sekunden, 12 m hoch und 56 m weit. Flüssigkeitsantriebe sind aber viel stärker und lassen sich steuern. Darauf bauen alle späteren Mondraketen auf."},
+{id:"peenemuende",y:1937,d:"1937",ch:1,c:"de",t:"Heeresversuchsanstalt Peenemünde",img:"peen",x:"Auf Usedom entsteht ein riesiges Raketenzentrum mit bis zu 12.000 Beschäftigten. Militärischer Leiter ist Walter Dornberger, technischer Leiter Wernher von Braun. Ziel ist das „Aggregat 4“ (A4): eine Rakete mit 1 t Sprengkopf und rund 300 km Reichweite."},
+{id:"mittelbau-dora",y:1943,d:"ab 1943",ch:1,c:"de",t:"Zwangsarbeit in Mittelbau-Dora",img:"dora",x:"Nach dem Luftangriff der Royal Air Force auf Peenemünde (August 1943) wird die Produktion in Stollen im Kohnstein bei Nordhausen verlegt. Dort mussten rund 60.000 KZ-Häftlinge arbeiten, schätzungsweise 20.000 starben. Bei der Herstellung der Rakete starben mehr Menschen als durch ihren Einsatz."},
+{id:"v2",y:1944,d:"September 1944",ch:1,c:"de",t:"Einsatz als „Vergeltungswaffe 2“",img:"v2",x:"Die A4 wird als V2 vor allem gegen London und Antwerpen eingesetzt: rund 3.000 Starts, etwa 9.000 Tote. Sie fliegt bis zu 88 km hoch und ist mit rund 5.700 km/h nicht abzufangen. Auf den Kriegsverlauf hat sie kaum Einfluss."},
+{id:"paperclip",y:1945,d:"1945",ch:1,c:"both",t:"Das Erbe der V2",img:"paperclip",x:"Nach Kriegsende holen die USA und die Sowjetunion deutsche Fachleute, Pläne und Raketenteile zu sich. Wernher von Braun geht mit seinem Team in die USA (Operation Paperclip). Aus der V2 entstehen die Redstone in den USA und die R-1 und R-2 in der UdSSR."},
+{id:"r7",y:1957,d:"21.08.1957",ch:2,c:"su",t:"R-7: erste Interkontinentalrakete",img:"r7",x:"Die Rakete von Chefkonstrukteur Sergej Koroljow ist die erste erfolgreich getestete Interkontinentalrakete. Gebaut wurde sie für Atomsprengköpfe, aber sie ist stark genug, um einen Satelliten in die Umlaufbahn zu bringen. Die heutigen Sojus-Raketen stammen von ihr ab."},
+{id:"sputnik",y:1957,d:"04.10.1957",ch:2,c:"su",p:"u",t:"Sputnik 1",img:"sputnik",x:"Der erste künstliche Satellit: eine Kugel mit 58 cm Durchmesser und 83,6 kg, die in 96 Minuten um die Erde kreist. Sein Piepsignal konnten Funkamateure auf der ganzen Welt hören. Im Westen löst er einen Schock aus: Wer Satelliten starten kann, kann auch Atomraketen über Kontinente schicken."},
+{id:"laika",y:1957,d:"03.11.1957",ch:2,c:"su",p:"u",t:"Laika",img:"laika",x:"Die Moskauer Straßenhündin Laika fliegt mit Sputnik 2 als erstes Lebewesen in eine Erdumlaufbahn. Eine Rückkehr war nicht vorgesehen, sie starb nach wenigen Stunden an Überhitzung. Ihr Flug zeigte: Ein Lebewesen übersteht den Start und die Schwerelosigkeit."},
+{id:"vanguard",y:1957,d:"06.12.1957",ch:2,c:"us",t:"Vanguard explodiert",img:"vanguard",x:"Der erste US-Versuch, einen Satelliten zu starten, scheitert vor laufenden Kameras: Die Vanguard-Rakete hebt kaum ab und explodiert. Zeitungen spotten über „Flopnik“ und „Kaputnik“."},
+{id:"explorer",y:1958,d:"31.01.1958",ch:2,c:"us",p:"s",t:"Explorer 1",img:"explorer",x:"Mit einer Rakete des Teams um Wernher von Braun starten die USA ihren ersten Satelliten. Explorer 1 macht die erste große Entdeckung im All: die Van-Allen-Strahlungsgürtel um die Erde. Noch 1958 wird die NASA gegründet, Raumfahrt wird zum nationalen Großprojekt."},
+{id:"luna1",y:1959,d:"02.01.1959",ch:3,c:"su",p:"u",t:"Luna 1",img:"luna1",x:"Die erste Sonde, die die Anziehung der Erde verlässt. Eigentlich sollte sie den Mond treffen, sie fliegt aber in etwa 6.000 km Abstand vorbei und kreist seitdem um die Sonne."},
+{id:"luna2",y:1959,d:"14.09.1959",ch:3,c:"su",p:"u",t:"Luna 2",img:"luna2",x:"Das erste von Menschen gebaute Objekt auf dem Mond: Luna 2 schlägt östlich des Mare Imbrium ein. An Bord war eine Kugel aus kleinen Wimpeln mit dem sowjetischen Wappen. Das britische Observatorium Jodrell Bank bestätigte den Einschlag."},
+{id:"luna3",y:1959,d:"07.10.1959",ch:3,c:"su",p:"u",t:"Luna 3",img:"luna3",x:"Luna 3 fliegt um den Mond herum und fotografiert seine Rückseite, die man von der Erde aus nie sieht. Die Filme werden an Bord entwickelt, abgetastet und zur Erde gefunkt. Die Bilder sind unscharf, aber eine Sensation."},
+{id:"belka-strelka",y:1960,d:"19.–20.08.1960",ch:3,c:"su",p:"u",t:"Belka und Strelka",img:"belka",x:"Mit Sputnik 5 fliegen die Hündinnen Belka und Strelka einen Tag lang um die Erde, zusammen mit Mäusen, Ratten und Pflanzen. Sie kehren als erste Lebewesen lebend aus der Umlaufbahn zurück. Strelkas Welpe Puschinka wurde später Caroline Kennedy geschenkt."},
+{id:"ham",y:1961,d:"31.01.1961",ch:3,c:"us",t:"Schimpanse Ham",img:"ham",x:"Ham testet die Mercury-Kapsel auf einem rund 16-minütigen Flug ins All und zurück, ohne die Erde zu umrunden (suborbital). Er bedient Hebel nach Lichtsignalen und landet wohlbehalten im Atlantik. Danach ist die Kapsel bereit für den ersten Amerikaner."},
+{id:"gagarin",y:1961,d:"12.04.1961",ch:4,c:"su",p:"u",t:"Juri Gagarin",img:"gagarin",x:"Juri Gagarin umrundet in Wostok 1 einmal die Erde, in 108 Minuten. Er ist der erste Mensch im All. Beim Start rief er „Pojechali!“, auf Deutsch „Los geht’s!“"},
+{id:"shepard",y:1961,d:"05.05.1961",ch:4,c:"us",t:"Alan Shepard",img:"shepard",x:"Alan Shepard fliegt mit Freedom 7 als erster Amerikaner ins All, aber nur suborbital: rund 15 Minuten, ohne die Erde zu umrunden."},
+{id:"kennedy",y:1961,d:"25.05.1961",ch:4,c:"us",t:"Kennedy: Ziel Mond",img:"kennedy",x:"Präsident John F. Kennedy kündigt vor dem Kongress an: Noch vor Ende des Jahrzehnts soll ein Amerikaner auf dem Mond landen und sicher zurückkehren. Zu diesem Zeitpunkt hatten die USA gerade einmal 15 Minuten Erfahrung mit Menschen im All."},
+{id:"glenn",y:1962,d:"20.02.1962",ch:4,c:"us",t:"John Glenn",img:"glenn",x:"John Glenn umrundet in Friendship 7 als erster Amerikaner die Erde: dreimal in knapp 5 Stunden."},
+{id:"rice",y:1962,d:"12.09.1962",ch:4,c:"us",t:"„We choose to go to the Moon“",img:"rice",x:"In seiner Rede an der Rice University in Houston sagt Kennedy: „Wir haben uns entschieden, zum Mond zu fliegen, nicht weil es leicht ist, sondern weil es schwer ist.“ Der Satz wird zum Motto des Apollo-Programms."},
+{id:"tereschkowa",y:1963,d:"16.06.1963",ch:4,c:"su",p:"u",t:"Walentina Tereschkowa",img:"teresch",x:"Walentina Tereschkowa fliegt mit Wostok 6 als erste Frau ins All: knapp 3 Tage, 48 Erdumrundungen. Die nächste Frau im All folgte erst 19 Jahre später."},
+{id:"woschod",y:1964,d:"12.10.1964",ch:5,c:"su",p:"u",t:"Woschod 1",img:"woschod",x:"Woschod 1 bringt als erstes Raumschiff drei Menschen gleichzeitig ins All. Um Platz zu sparen, flogen die Kosmonauten ohne Raumanzüge."},
+{id:"leonow",y:1965,d:"18.03.1965",ch:5,c:"su",p:"u",t:"Alexei Leonow",img:"leonow",x:"Alexei Leonow verlässt als erster Mensch ein Raumschiff, rund 12 Minuten lang. Sein Anzug blähte sich so stark auf, dass er kaum zurück in die Luftschleuse passte. Er musste heimlich Luft aus dem Anzug ablassen."},
+{id:"gemini4",y:1965,d:"03.06.1965",ch:5,c:"us",t:"Gemini 4: Edward White",img:"gemini4",x:"Edward White steigt als erster Amerikaner aus, etwa 23 Minuten. Er wollte danach gar nicht mehr zurück: „Das ist der traurigste Moment meines Lebens.“ Das Gemini-Programm übt mit 10 bemannten Flügen in 2 Jahren alles, was für den Mond nötig ist: lange Flüge, Ausstiege und Kopplungen."},
+{id:"rendezvous",y:1965,d:"15.12.1965",ch:5,c:"us",p:"s",t:"Gemini 6A und 7: Rendezvous",img:"rendez",x:"Zwei bemannte Raumschiffe nähern sich im Orbit bis auf etwa 30 cm. Genau das braucht man später am Mond, damit die Mondfähre und das Mutterschiff wieder zusammenfinden."},
+{id:"luna9",y:1966,d:"03.02.1966",ch:5,c:"su",p:"u",t:"Luna 9",img:"luna9",x:"Luna 9 landet als erste Sonde weich auf dem Mond und funkt Panoramabilder zur Erde. Damit ist klar: Der Boden trägt, ein Raumschiff versinkt nicht im Staub."},
+{id:"gemini8",y:1966,d:"16.03.1966",ch:5,c:"us",p:"s",t:"Gemini 8: erste Kopplung",img:"gemini8",x:"Neil Armstrong und David Scott koppeln als Erste an ein anderes Raumfahrzeug, die unbemannte Agena. Kurz danach klemmt eine Steuerdüse, das Raumschiff dreht sich fast einmal pro Sekunde. Armstrong bekommt es unter Kontrolle, die Mission wird abgebrochen."},
+{id:"roboter",y:1966,d:"1964–1968",ch:5,c:"us",t:"Roboter erkunden den Mond",img:"robots",x:"Ranger-Sonden liefern Nahaufnahmen, Surveyor-Sonden landen und testen, wie fest der Boden ist, und die Lunar Orbiter kartieren 99 % des Mondes. So werden mögliche Landeplätze für Apollo gefunden."},
+{id:"apollo1",y:1967,d:"27.01.1967",ch:6,c:"us",t:"Apollo 1: Tragödie",img:"apollo1",x:"Bei einem Bodentest bricht in der Kapsel ein Feuer aus, wahrscheinlich durch einen elektrischen Fehler. In der reinen Sauerstoff-Atmosphäre breitet es sich in Sekunden aus. Gus Grissom, Ed White und Roger Chaffee sterben. Folge: 20 Monate Pause, eine neue Luke und schwer entflammbare Materialien."},
+{id:"sojus1",y:1967,d:"24.04.1967",ch:6,c:"su",t:"Sojus 1",img:"sojus1",x:"Die neue Sojus hat viele technische Probleme. Bei der Landung öffnet sich der Fallschirm nicht richtig, Wladimir Komarow stirbt. Er ist der erste Mensch, der bei einem Raumflug ums Leben kommt."},
+{id:"apollo4",y:1967,d:"09.11.1967",ch:6,c:"us",t:"Apollo 4: erste Saturn V",img:"saturn",x:"Der erste Start der Saturn V, noch unbemannt: 110 m hoch, 2.900 t schwer, drei Stufen. Danach folgen weitere Tests: Apollo 5 erprobt im Januar 1968 die Mondfähre, Apollo 6 im April 1968 hat Probleme mit den Triebwerken."},
+{id:"apollo7",y:1968,d:"11.–22.10.1968",ch:6,c:"us",t:"Apollo 7",img:"apollo7",x:"Der erste bemannte Apollo-Flug nach dem Feuer: fast 11 Tage im Erdorbit, Test des Kommando- und Servicemoduls und die ersten Live-Fernsehbilder aus einem US-Raumschiff. Crew: Schirra, Eisele, Cunningham."},
+{id:"apollo8",y:1968,d:"21.–27.12.1968",ch:6,c:"us",p:"s",t:"Apollo 8",img:"apollo8",x:"Frank Borman, Jim Lovell und Bill Anders sind die ersten Menschen am Mond. Sie umrunden ihn zehnmal, beim ersten bemannten Start einer Saturn V. An Heiligabend entsteht das berühmte Foto „Earthrise“."},
+{id:"apollo9",y:1969,d:"03.–13.03.1969",ch:6,c:"us",t:"Apollo 9",img:"apollo9",x:"Der erste bemannte Test der Mondfähre, in der Erdumlaufbahn: abkoppeln, eigenständig fliegen, wieder ankoppeln. Abstiegs- und Aufstiegstriebwerk werden erprobt. Funknamen: „Spider“ und „Gumdrop“."},
+{id:"apollo10",y:1969,d:"18.–26.05.1969",ch:6,c:"us",t:"Apollo 10: Generalprobe",img:"apollo10",x:"Die Mondfähre „Snoopy“ sinkt bis auf etwa 15 km über die Mondoberfläche. Navigation, Landeradar und das Wiederankoppeln werden getestet. Nur die Landung fehlt noch."},
+{id:"a11-start",y:1969,d:"16.07.1969",ch:7,c:"us",t:"Apollo 11: Start",img:"a11start",x:"Neil Armstrong, Buzz Aldrin und Michael Collins starten von der Startrampe 39A im Kennedy Space Center, um 9:32 Uhr Ortszeit (14:32 Uhr MEZ). Nach rund 3 Tagen und 384.000 km erreichen sie am 19. Juli die Mondumlaufbahn."},
+{id:"a11-landung",y:1969,d:"20.07.1969",ch:7,c:"us",p:"s",t:"Apollo 11: Landung",img:"a11land",x:"Die Mondfähre „Eagle“ landet um 21:17 Uhr MEZ im Meer der Ruhe. Im Anflug melden die Alarme 1202 und 1201 eine Überlastung des Bordcomputers, und Armstrong muss einem Feld voller Felsbrocken ausweichen. Laut Anzeige reichte der Treibstoff nur noch für rund 25 Sekunden. „The Eagle has landed.“"},
+{id:"a11-schritt",y:1969,d:"21.07.1969",ch:7,c:"us",t:"Der erste Schritt",img:"a11step",x:"Um 3:56 Uhr MEZ betritt Neil Armstrong den Mond: „That’s one small step for man, one giant leap for mankind.“ Rund 600 Millionen Menschen sehen zu. Mit Aldrin bleibt er etwa 2,5 Stunden draußen, sammelt rund 22 kg Gestein und baut Experimente auf. Michael Collins kreist währenddessen allein im Kommandomodul um den Mond."},
+{id:"a11-rueckkehr",y:1969,d:"24.07.1969",ch:7,c:"us",t:"Rückkehr zur Erde",img:"a11home",x:"Am 21. Juli startet die Eagle wieder vom Mond, am 24. Juli wassert die Kapsel im Pazifik. Danach muss die Crew 21 Tage in Quarantäne, weil niemand ausschließen konnte, dass sie unbekannte Keime vom Mond mitbringt."},
+{id:"apollo12",y:1969,d:"14.–24.11.1969",ch:8,c:"us",t:"Apollo 12",img:"apollo12",x:"36 und 52 Sekunden nach dem Start schlagen Blitze in die Rakete ein, Systeme fallen aus, ein Neustart gelingt. Die Präzisionslandung gelingt rund 180 m neben der Sonde Surveyor 3."},
+{id:"apollo13",y:1970,d:"11.–17.04.1970",ch:8,c:"us",t:"Apollo 13",img:"apollo13",x:"Etwa 56 Stunden nach dem Start explodiert Sauerstofftank 2: „Houston, we’ve had a problem.“ Die Landung wird abgebrochen, die Mondfähre dient als Rettungsboot. Kohlendioxid-Filter werden mit Klebeband und Schläuchen angepasst. Die Crew kommt sicher zurück und stellt einen Rekord auf: rund 400.000 km Entfernung von der Erde."},
+{id:"apollo14",y:1971,d:"31.01.–09.02.1971",ch:8,c:"us",t:"Apollo 14",img:"rocks14",x:"Landung in Fra Mauro, dem ursprünglichen Ziel von Apollo 13. Die Crew bringt rund 43 kg Gestein mit. Alan Shepard, zehn Jahre zuvor der erste Amerikaner im All, schlägt auf dem Mond zwei Golfbälle."},
+{id:"apollo15",y:1971,d:"26.07.–07.08.1971",ch:8,c:"us",t:"Apollo 15: das Mondauto",img:"rover",x:"Zum ersten Mal fährt ein Mondauto (Lunar Roving Vehicle): rund 210 kg, Elektroantrieb, etwa 13 km/h. Die Crew bleibt rund 67 Stunden auf dem Mond und sammelt etwa 77 kg Gestein. Vor der Kamera fallen ein Hammer und eine Feder im Vakuum gleich schnell."},
+{id:"apollo16",y:1972,d:"16.–27.04.1972",ch:8,c:"us",t:"Apollo 16",img:"rocks16",x:"Landung im Descartes-Hochland, rund 95 kg Gestein."},
+{id:"apollo17",y:1972,d:"07.–19.12.1972",ch:8,c:"us",t:"Apollo 17",img:"apollo17",x:"Der einzige Nachtstart einer Saturn V. Mit Harrison Schmitt ist zum ersten Mal ein Geologe auf dem Mond. Rund 75 Stunden auf dem Mond, etwa 110 kg Gestein. Eugene Cernan ist bis heute der letzte Mensch, der den Mond betreten hat."},
+{id:"skylab",y:1973,d:"1973",ch:9,c:"us",t:"Skylab",img:"skylab",x:"Die erste US-Raumstation, gebaut aus einer umgebauten Saturn-V-Oberstufe. Drei Crews leben und forschen dort bis zu 84 Tage am Stück im Erdorbit."},
+{id:"apollo-sojus",y:1975,d:"17.07.1975",ch:9,c:"both",t:"Apollo-Sojus",img:"astp",x:"Zum ersten Mal koppeln ein amerikanisches und ein sowjetisches Raumschiff. Thomas Stafford und Alexei Leonow geben sich im All die Hand. Ein symbolisches Ende des Wettlaufs."},
+{id:"voyager",y:1977,d:"1977",ch:9,c:"us",t:"Voyager 1 und 2",img:"voyager",x:"Die beiden Sonden starten zu den äußeren Planeten. Voyager 1 fliegt an Jupiter und Saturn vorbei, Voyager 2 zusätzlich an Uranus und erreicht 1989 Neptun. Beide haben inzwischen das Sonnensystem verlassen."}
+];
+
+/* ---------- Zeichen-Bausteine (viewBox 320 × 180) ---------- */
+const T=(x,y,t,a="start",c="l")=>`<text x="${x}" y="${y}" text-anchor="${a}" class="${c}">${t}</text>`;
+const ER=(x,y,r)=>`<circle class="earth" cx="${x}" cy="${y}" r="${r}"/><path class="land" d="M${x-r*.55} ${y-r*.15}c${r*.2} ${-r*.45} ${r*.55} ${-r*.35} ${r*.62} ${-r*.05}s${r*.05} ${r*.4} ${r*.33} ${r*.35}M${x-r*.2} ${y+r*.45}c${r*.25} ${-r*.12} ${r*.4} ${r*.05} ${r*.5} ${r*.25}"/>`;
+const MO=(x,y,r)=>`<circle class="moon" cx="${x}" cy="${y}" r="${r}"/><circle class="cr" cx="${x-r*.3}" cy="${y-r*.25}" r="${r*.18}"/><circle class="cr" cx="${x+r*.32}" cy="${y+r*.1}" r="${r*.13}"/><circle class="cr" cx="${x-r*.05}" cy="${y+r*.45}" r="${r*.1}"/>`;
+const ORB=(cx,cy,rx,ry,rot=0)=>`<ellipse class="o" cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" transform="rotate(${rot} ${cx} ${cy})"/>`;
+const ROCK=(x,b,h,w)=>`<path class="f" d="M${x-w/2} ${b}V${b-h*.7}Q${x-w/2} ${b-h*.9} ${x} ${b-h}Q${x+w/2} ${b-h*.9} ${x+w/2} ${b-h*.7}V${b}Z"/><path class="f" d="M${x-w/2} ${b-h*.22}L${x-w*1.05} ${b}H${x-w/2}ZM${x+w/2} ${b-h*.22}L${x+w*1.05} ${b}H${x+w/2}Z"/>`;
+const FL=(x,y,len,w)=>`<path class="af" opacity=".9" d="M${x-w/2} ${y}Q${x} ${y+len*1.2} ${x+w/2} ${y}Z"/>`;
+const CAP=(x,y,s,rot=0)=>`<g transform="translate(${x} ${y}) rotate(${rot})"><path class="f" d="M${-s} ${s*.5}L${-s*.35} ${-s*.7}H${s*.35}L${s} ${s*.5}Z"/><path class="s" d="M${-s} ${s*.5}Q0 ${s*.85} ${s} ${s*.5}"/></g>`;
+const DOG=(x,y,s)=>`<g transform="translate(${x} ${y})"><path class="f" d="M${-s*.8} ${-s*.45}L${-s*.6} ${-s*1.6}L${-s*.05} ${-s*.85}ZM${s*.8} ${-s*.45}L${s*.6} ${-s*1.6}L${s*.05} ${-s*.85}Z"/><circle class="f" r="${s}"/><circle class="dot" cx="${-s*.35}" cy="${-s*.12}" r="${s*.12}"/><circle class="dot" cx="${s*.35}" cy="${-s*.12}" r="${s*.12}"/><ellipse class="dot" cx="0" cy="${s*.4}" rx="${s*.2}" ry="${s*.14}"/></g>`;
+const CHUTE=(x,y,s)=>`<path class="s" d="M${x-s} ${y}L${x} ${y+s*1.4}M${x+s} ${y}L${x} ${y+s*1.4}M${x} ${y}L${x} ${y+s*1.4}"/><path class="f" d="M${x-s} ${y}Q${x} ${y-s*1.3} ${x+s} ${y}Q${x+s*.5} ${y-s*.25} ${x} ${y}Q${x-s*.5} ${y-s*.25} ${x-s} ${y}Z"/>`;
+const ASTRO=(x,y,s)=>`<g transform="translate(${x} ${y})"><path class="s" d="M${-s*.6} ${-s*.3}L${-s*1.25} ${s*.35}M${s*.6} ${-s*.3}L${s*1.25} ${-s*.65}M${-s*.3} ${s*.7}L${-s*.5} ${s*1.6}M${s*.3} ${s*.7}L${s*.5} ${s*1.6}"/><rect class="f" x="${-s*.62}" y="${-s*.6}" width="${s*1.24}" height="${s*1.35}" rx="${s*.25}"/><circle class="f" cy="${-s*1.1}" r="${s*.55}"/><path class="a" d="M${-s*.3} ${-s*1.12}h${s*.6}"/></g>`;
+const LM=(x,y,s)=>`<g transform="translate(${x} ${y})"><path class="s" d="M${-s} 0L${-s*1.7} ${s*1.1}M${s} 0L${s*1.7} ${s*1.1}M${-s*1.95} ${s*1.1}h${s*.5}M${s*1.45} ${s*1.1}h${s*.5}"/><rect class="f" x="${-s}" y="${-s*.6}" width="${s*2}" height="${s*.9}"/><path class="f" d="M${-s*.8} ${-s*.6}L${-s*.9} ${-s*1.3}L${-s*.4} ${-s*1.8}H${s*.5}L${s*.9} ${-s*1.2}L${s*.8} ${-s*.6}Z"/><path class="a" d="M${-s*.35} ${-s*1.35}l${s*.25} ${-s*.22}"/></g>`;
+const CSM=(x,y,s,rot=0)=>`<g transform="translate(${x} ${y}) rotate(${rot})"><path class="f" d="M${-s*1.6} ${-s*.3}L${-s*2.1} ${-s*.48}V${s*.48}L${-s*1.6} ${s*.3}Z"/><rect class="f" x="${-s*1.6}" y="${-s*.5}" width="${s*1.6}" height="${s}"/><path class="f" d="M0 ${-s*.5}L${s*.9} ${-s*.14}V${s*.14}L0 ${s*.5}Z"/></g>`;
+const SPARK=(x,y,r)=>{let p="";for(let i=0;i<10;i++){const a=i*Math.PI/5,r1=i%2?r*.45:r*.3,r2=i%2?r*.8:r;p+=`M${(x+Math.cos(a)*r1).toFixed(1)} ${(y+Math.sin(a)*r1).toFixed(1)}L${(x+Math.cos(a)*r2).toFixed(1)} ${(y+Math.sin(a)*r2).toFixed(1)}`}return `<path class="a" d="${p}"/>`};
+const STAR=(x,y,r)=>{let p="";for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.42:r;p+=(i?"L":"M")+(x+Math.cos(a)*rr).toFixed(1)+" "+(y+Math.sin(a)*rr).toFixed(1)}return `<path class="af" d="${p}Z"/>`};
+const MG=(y=140)=>`<path class="moon" d="M0 ${y}Q160 ${y-12} 320 ${y}V180H0Z"/><ellipse class="cr" cx="60" cy="${y+18}" rx="14" ry="4"/><ellipse class="cr" cx="270" cy="${y+22}" rx="10" ry="3"/>`;
+const PODIUM=`<path class="s" d="M150 110L144 86M170 110L176 86"/><rect class="f" x="139" y="76" width="9" height="13" rx="4"/><rect class="f" x="172" y="76" width="9" height="13" rx="4"/><path class="f" d="M118 172L127 110H193L202 172Z"/><circle class="s" cx="160" cy="138" r="13"/><circle class="s" cx="160" cy="138" r="7"/>`;
+const SUBORB=(apex,lab1,lab2)=>`<path class="s" d="M10 155H320"/><path class="a" stroke-dasharray="5 4" d="M40 155Q160 -15 280 155"/><path class="o" d="M160 70V155"/>${ROCK(40,155,28,7)}${CHUTE(272,112,11)}${CAP(272,136,7)}${T(168,100,apex)}${T(20,174,lab1)}${T(20,24,lab2,"start","lb")}`;
+
+const D={
+verne:()=>MO(252,48,24)+`<path class="o" d="M150 126Q186 70 228 58"/><g transform="translate(192 86) rotate(-38)"><path class="f" d="M-11 -5H4Q12 -5 14 0Q12 5 4 5H-11Z"/></g><path class="f" d="M86 140Q123 126 160 138Q197 126 234 140V158Q197 144 160 156Q123 144 86 158Z"/><path class="s" d="M160 138V156M100 143Q125 135 150 141M100 150Q125 142 150 148M170 141Q195 135 220 143M170 148Q195 142 220 150"/>`+T(24,28,"Jules Verne, 1865","start","lb")+T(24,44,"„De la Terre à la Lune“"),
+ziol:()=>ROCK(70,104,64,16)+FL(70,104,10,9)+`<g transform="rotate(10 70 138)"><rect class="f" x="62" y="116" width="16" height="42"/></g>`+`<text x="210" y="84" text-anchor="middle" class="eq">Δv = vₑ · ln(m₀ / m₁)</text>`+T(210,106,"Geschwindigkeitsgewinn hängt vom","middle")+T(210,120,"Massenverhältnis ab → Stufen","middle")+T(92,156,"leere Stufe fällt ab")+T(24,28,"Konstantin Ziolkowski","start","lb"),
+goddard:()=>`<path class="s" d="M10 165H310M135 165L157 44M185 165L163 44M141 135H179M147 102H173"/><rect class="f" x="154" y="30" width="12" height="24" rx="3"/>`+FL(160,54,14,8)+T(196,62,"Flüssigkeitsrakete","start","lb")+T(196,80,"2,5 s Flug")+T(196,94,"12 m hoch")+T(196,108,"56 m weit")+T(24,28,"Auburn, Massachusetts"),
+peen:()=>`<path class="s" d="M10 165H310"/>`+ROCK(110,165,140,26)+`<path class="s" d="M97 120H123M97 82H123"/><path class="a" d="M152 25V165M147 25H157M147 165H157"/>`+T(160,99,"14 m","start","la")+T(196,52,"Aggregat 4 (A4)","start","lb")+T(196,70,"1 t Sprengkopf")+T(196,84,"≈ 300 km Reichweite")+T(196,98,"Flüssigtreibstoff"),
+dora:()=>`<path class="hill" d="M0 125Q90 40 170 72Q240 98 320 62V180H0Z"/><path class="tun" d="M95 180V150A22 22 0 0 1 139 150V180Z"/><path class="tun" d="M186 180V152A20 20 0 0 1 226 152V180Z"/>`+T(20,26,"Stollen im Kohnstein bei Nordhausen","start","lb")+T(20,42,"≈ 60.000 Häftlinge · ≈ 20.000 Tote"),
+v2:()=>`<path class="s" d="M10 150H310"/><path class="a" stroke-dasharray="5 4" d="M40 150Q160 -20 280 150"/><path class="o" d="M160 66V150"/><path class="s" d="M40 166H280M40 161V171M280 161V171"/><g transform="rotate(25 40 150)">${ROCK(40,150,26,7)}</g>${SPARK(280,150,10)}`+T(152,100,"≈ 88 km","end")+T(160,178,"≈ 320 km","middle")+T(20,24,"≈ 5 Minuten Flugzeit","start","lb"),
+paperclip:()=>`<defs><marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" fill="var(--ink)"/></marker></defs><rect class="f" x="105" y="22" width="110" height="34" rx="6"/><rect class="f" x="20" y="112" width="110" height="34" rx="6" style="stroke:var(--su)"/><rect class="f" x="190" y="112" width="110" height="34" rx="6" style="stroke:var(--us)"/><path class="s" marker-end="url(#ah)" d="M130 58Q95 78 80 108"/><path class="s" marker-end="url(#ah)" d="M190 58Q225 78 240 108"/>`+T(160,44,"Deutschland 1945","middle","lb")+`<text x="75" y="134" text-anchor="middle" class="lb" style="fill:var(--su)">UdSSR</text><text x="245" y="134" text-anchor="middle" class="lb" style="fill:var(--us)">USA</text>`+T(75,164,"Koroljow · R-1, R-2","middle")+T(245,164,"von Braun · Redstone","middle"),
+r7:()=>`<path class="f" d="M152 160H138L148 94Q152 88 152 96Z"/><path class="f" d="M168 160H182L172 94Q168 88 168 96Z"/>`+ROCK(160,160,140,16)+FL(145,160,14,10)+FL(160,160,16,10)+FL(175,160,14,10)+T(198,48,"R-7 „Semjorka“","start","lb")+T(198,66,"Kern + 4 Blöcke")+T(198,80,"Konstrukteur:")+T(198,94,"Koroljow"),
+sputnik:()=>ER(60,165,72)+ORB(165,125,150,64,-12)+`<path class="s" d="M224 64L170 92M226 67L178 103M221 60L166 80M228 69L190 111"/><circle class="f" cx="232" cy="58" r="11"/><path class="a" d="M252 48q6 10 0 20M260 41q10 17 0 34M268 34q14 24 0 48"/>`+T(24,26,"58 cm · 83,6 kg · 96 min pro Umlauf","start","lb")+T(286,62,"„piep“","middle","la"),
+laika:()=>ER(60,165,72)+ORB(165,125,150,64,-12)+`<path class="f" d="M196 104L214 40H236L254 104Z"/><circle class="f" cx="225" cy="80" r="15"/>`+DOG(225,84,7)+T(225,124,"Sputnik 2","middle","lb")+T(24,26,"erstes Lebewesen im Orbit"),
+vanguard:()=>`<path class="s" d="M10 165H310"/><g transform="rotate(-14 150 165)">${ROCK(150,165,92,14)}</g>`+SPARK(152,128,34)+T(24,28,"Vanguard TV3","start","lb")+T(24,44,"explodiert kurz nach dem Abheben"),
+explorer:()=>`<ellipse class="belt" cx="140" cy="100" rx="56" ry="36"/><ellipse class="belt" cx="140" cy="100" rx="92" ry="58"/>`+ER(140,100,24)+`<g transform="rotate(-28 268 40)"><rect class="f" x="244" y="36" width="48" height="8" rx="3"/></g>`+T(248,66,"Explorer 1","start","lb")+T(24,24,"Van-Allen-Strahlungsgürtel","start","la")+T(20,170,"innerer und äußerer Gürtel"),
+luna1:()=>ER(40,128,24)+MO(222,74,16)+`<circle class="o" cx="222" cy="74" r="30"/><path class="a" d="M60 114Q140 44 222 40Q276 38 312 22"/>`+T(222,124,"Vorbeiflug in ≈ 6.000 km","middle")+T(308,44,"→ Sonne","end","la")+T(20,24,"Luna 1","start","lb"),
+luna2:()=>ER(40,128,24)+MO(238,88,32)+`<path class="a" d="M60 114Q150 50 210 82"/>`+SPARK(210,82,9)+`<path class="f" d="M268 28h16l5 12-13 10-13-10z"/>`+T(276,64,"Wimpel","middle")+T(160,166,"Einschlag östlich des Mare Imbrium","middle")+T(20,24,"Luna 2","start","lb"),
+luna3:()=>ER(40,128,24)+MO(206,88,26)+`<path class="a" d="M62 116C170 162 284 134 264 82C250 40 160 40 66 104"/><rect class="f" x="254" y="62" width="14" height="10" rx="2"/><path class="o" d="M254 67L234 78M254 70L232 92"/>`+T(206,170,"Rückseite fotografiert","middle")+T(20,24,"Luna 3","start","lb"),
+belka:()=>ER(160,262,118)+`<ellipse class="o" cx="160" cy="262" rx="150" ry="134"/>`+CHUTE(232,54,18)+`<circle class="f" cx="232" cy="88" r="10"/>`+DOG(80,72,12)+DOG(114,76,12)+T(97,112,"Belka & Strelka","middle","lb")+T(232,118,"Rückkehr per Fallschirm","middle"),
+ham:()=>SUBORB("≈ 250 km","Flugzeit ≈ 16 Minuten · suborbital","Mercury-Redstone 2"),
+gagarin:()=>ER(160,95,40)+`<circle class="o" cx="160" cy="95" r="64"/><path class="af" d="M224 90l5 10 5-10z"/><circle class="f" cx="160" cy="31" r="8"/><path class="f" d="M168 27L180 24V38L168 35Z"/>`+T(246,40,"Wostok 1","start","lb")+T(246,56,"1 Umrundung")+T(246,70,"108 Minuten"),
+shepard:()=>SUBORB("≈ 187 km","Flugzeit ≈ 15 Minuten · suborbital","Freedom 7"),
+kennedy:()=>PODIUM+MO(264,48,20)+T(20,28,"„… before this decade is out …“","start","lb")+T(20,44,"Mond bis 1970"),
+rice:()=>PODIUM+MO(264,48,20)+T(20,28,"„We choose to go to the Moon“","start","lb")+T(20,44,"Rice University, Houston"),
+glenn:()=>ER(160,95,34)+ORB(160,95,76,42,-18)+ORB(160,95,76,42,0)+ORB(160,95,76,42,18)+CAP(232,52,8,60)+T(20,26,"Friendship 7","start","lb")+T(20,42,"3 Umrundungen · ≈ 5 Stunden"),
+teresch:()=>{let o="";for(let i=0;i<10;i++)o+=ORB(160,95,74,34,-80+i*18);return `<g transform="translate(40 0)">${o}${ER(160,95,30)}</g>`+T(20,26,"Wostok 6","start","lb")+T(20,42,"48 Umrundungen · ≈ 3 Tage")},
+woschod:()=>{const seat=(x,y)=>`<path class="s" d="M${x-12} ${y-20}V${y+8}H${x+14}"/><circle class="f" cx="${x-3}" cy="${y-15}" r="5"/>`;return `<g transform="translate(40 0)"><circle class="f" cx="160" cy="94" r="64"/><circle class="s" cx="160" cy="52" r="8"/>`+seat(126,112)+seat(161,106)+seat(196,112)+`</g>`+T(20,26,"Woschod 1","start","lb")+T(20,42,"3 Kosmonauten")+T(20,56,"ohne Raumanzüge")},
+leonow:()=>`<circle class="f" cx="88" cy="96" r="34"/><g transform="rotate(-18 120 90)"><rect class="f" x="118" y="80" width="30" height="22" rx="4"/></g><path class="a" d="M148 80Q194 40 222 88"/>`+ASTRO(234,98,10)+T(20,26,"Woschod 2","start","lb")+T(234,150,"≈ 12 Minuten draußen","middle"),
+gemini4:()=>CAP(92,96,24,90)+`<path class="a" d="M110 90Q170 40 218 92"/>`+ASTRO(230,100,10)+T(20,26,"Gemini 4","start","lb")+T(230,152,"≈ 23 Minuten draußen","middle"),
+rendez:()=>CAP(108,92,22,90)+CAP(212,92,22,-90)+`<path class="a" d="M128 62H192M128 57V67M192 57V67"/>`+T(160,52,"≈ 30 cm","middle","la")+T(108,138,"Gemini 6A","middle","lb")+T(212,138,"Gemini 7","middle","lb"),
+luna9:()=>MG(140)+`<path class="f" d="M146 128L116 138L144 135ZM174 128L204 138L176 135Z"/><circle class="f" cx="160" cy="118" r="16"/><path class="s" d="M152 104L140 82M168 104L180 82"/><path class="a" stroke-dasharray="3 4" d="M108 96A60 60 0 0 1 212 96"/>`+T(20,26,"Luna 9","start","lb")+T(20,42,"erste Panoramabilder vom Mond"),
+gemini8:()=>`<defs><marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" fill="currentColor"/></marker></defs><rect class="f" x="150" y="80" width="118" height="24" rx="3"/>`+CAP(128,92,20,90)+`<path class="a" marker-end="url(#ah)" d="M200 40A62 62 0 1 1 96 150"/>`+T(209,96,"Agena","middle","l")+T(20,26,"Gemini 8 + Agena","start","lb")+T(20,42,"Steuerdüse klemmt → Rotation"),
+robots:()=>MG(140)+`<path class="s" d="M146 108L124 136M174 108L196 136M160 108V138M160 88V58"/><ellipse class="f" cx="124" cy="137" rx="6" ry="2"/><ellipse class="f" cx="196" cy="137" rx="6" ry="2"/><path class="f" d="M144 110H176L160 86Z"/><g transform="rotate(-20 163 58)"><rect class="sol" x="150" y="50" width="28" height="12"/></g>`+T(20,26,"Ranger · Surveyor · Lunar Orbiter","start","lb")+T(20,42,"Nahbilder, Testlandungen, Karten"),
+apollo1:()=>`<path class="f" d="M112 120L146 46H174L208 120Z"/><path class="s" d="M112 120Q160 136 208 120M152 70H168V96H152Z"/>`+STAR(128,148,7)+STAR(160,148,7)+STAR(192,148,7)+T(160,174,"Grissom · White · Chaffee","middle"),
+sojus1:()=>`<g transform="translate(40 0)"><path class="s" d="M150 98Q128 72 166 60Q192 50 170 34Q152 26 160 22M170 98Q192 76 158 66"/><path class="f" d="M148 24Q160 6 174 20Q166 27 160 22Q154 30 148 24Z"/><path class="f" d="M140 132Q140 104 160 98Q180 104 180 132Z"/></g>`+T(20,26,"Sojus 1","start","lb")+T(20,42,"Fallschirm öffnet nicht richtig"),
+saturn:()=>`<path class="f" d="M80 160L71 172H80ZM100 160L109 172H100Z"/><rect class="f" x="80" y="112" width="20" height="60"/><rect class="f" x="80" y="70" width="20" height="42"/><path class="f" d="M80 70V54L84 48H96L100 54V70Z"/><path class="f" d="M84 48L86 31H94L96 48Z"/><path class="f" d="M86 31V24L90 17L94 24V31Z"/><path class="s" d="M90 17V6"/><path class="a" d="M58 6V172M53 6H63M53 172H63"/><path class="o" d="M104 142H118M104 92H118M104 60H118M100 40H118M98 24H118"/>`+T(52,92,"110 m","end","la")+T(122,146,"1. Stufe S-IC · 5 Triebwerke")+T(122,96,"2. Stufe S-II · 5 Triebwerke")+T(122,64,"3. Stufe S-IVB · 1 Triebwerk")+T(122,44,"Mondfähre (verstaut)")+T(122,28,"Kommando- und Servicemodul"),
+apollo7:()=>ER(70,165,82)+ORB(160,140,165,74,-10)+CSM(232,58,14,-12)+T(20,26,"Apollo 7","start","lb")+T(20,42,"fast 11 Tage im Erdorbit"),
+apollo8:()=>ER(188,72,26)+`<path class="shade" d="M188 46A26 26 0 0 0 188 98Z"/><path class="moon" d="M0 140Q160 106 320 140V180H0Z"/><ellipse class="cr" cx="80" cy="150" rx="16" ry="4"/><ellipse class="cr" cx="250" cy="156" rx="12" ry="3"/>`+T(20,26,"„Earthrise“","start","lb")+T(20,42,"24.12.1968"),
+apollo9:()=>`<defs><marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8Z" fill="currentColor"/></marker></defs>`+ER(160,262,104)+CSM(112,78,14)+LM(222,74,11)+`<path class="a" marker-end="url(#ah)" d="M138 52Q166 36 194 52"/><path class="a" marker-end="url(#ah)" d="M196 112Q166 126 136 110"/>`+T(166,30,"abkoppeln","middle")+T(20,170,"„Gumdrop“ + „Spider“","start","lb")+T(166,140,"wieder ankoppeln","middle"),
+apollo10:()=>MG(150)+LM(176,62,10)+`<path class="o" d="M176 76V144"/>`+CSM(80,32,10)+T(186,112,"≈ 15 km","start","la")+T(212,36,"„Snoopy“","start","lb"),
+a11start:()=>ER(40,122,24)+MO(282,66,14)+`<circle class="o" cx="40" cy="122" r="34"/><path class="a" d="M70 108C130 146 222 122 270 76"/><path class="o" d="M276 52C232 18 126 36 68 96"/>`+T(160,170,"≈ 3 Tage · ≈ 384.000 km","middle")+T(20,26,"Startrampe 39A · 9:32 Uhr Ortszeit","start","lb"),
+a11land:()=>`<path class="moon" d="M0 132Q160 124 320 132V180H0Z"/><ellipse class="f" cx="250" cy="142" rx="9" ry="4"/><ellipse class="f" cx="88" cy="150" rx="6" ry="3"/>`+LM(160,112,16)+`<rect class="tag" x="224" y="36" width="66" height="26" rx="4"/>`+T(257,54,"1202","middle","tagt")+T(20,26,"Meer der Ruhe · 21:17 Uhr MEZ","start","lb")+T(20,166,"„The Eagle has landed.“"),
+a11step:()=>{let r="";for(let y=46;y<=150;y+=11)r+=`M110 ${y}H210`;return `<defs><clipPath id="sole"><path d="M130 150C118 120 118 60 140 34C160 14 190 22 194 52C198 86 186 130 176 150C168 166 140 168 130 150Z"/></clipPath></defs><path class="moon" d="M130 150C118 120 118 60 140 34C160 14 190 22 194 52C198 86 186 130 176 150C168 166 140 168 130 150Z"/><path class="s" clip-path="url(#sole)" d="${r}" style="stroke:var(--faint);stroke-width:4"/>`+T(222,60,"21.07.1969","start","lb")+T(222,76,"3:56 Uhr MEZ")+T(222,100,"„one small step“")},
+a11home:()=>`<path class="s" d="M0 142q20 -8 40 0t40 0t40 0t40 0t40 0t40 0t40 0t40 0M20 158q20 -6 40 0t40 0t40 0t40 0t40 0t40 0t40 0"/><circle class="f" cx="152" cy="104" r="5"/><circle class="f" cx="160" cy="101" r="5"/><circle class="f" cx="168" cy="104" r="5"/>`+CAP(160,128,22)+T(20,26,"Wasserung im Pazifik","start","lb")+T(20,42,"danach 21 Tage Quarantäne"),
+apollo12:()=>`<path class="s" d="M10 170H310"/>`+ROCK(110,170,150,18)+`<path class="a" style="stroke-width:2.4" d="M262 10L226 58H246L206 100H224L124 120"/>`+T(20,42,"Blitze nach 36 s und 52 s")+T(20,26,"Apollo 12","start","lb"),
+apollo13:()=>CSM(150,88,22)+`<path class="s" style="stroke:var(--bg);stroke-width:5" d="M120 76V100"/>`+SPARK(120,88,16)+LM(206,96,11)+T(20,26,"Sauerstofftank 2 explodiert","start","lb")+T(20,166,"Mondfähre wird zum Rettungsboot"),
+rocks14:()=>MG(140)+LM(70,112,11)+`<path class="f" d="M180 142l8-14 14-2 8 12-6 6zM210 144l6-10 12 0 6 9-4 3zM196 146l4-6 8 0 3 6z"/>`+T(206,120,"≈ 43 kg Gestein","middle")+T(20,26,"Fra Mauro","start","lb")+T(20,42,"2 Golfbälle von Alan Shepard"),
+rover:()=>MG(140)+`<path class="o" d="M10 150H96"/><circle class="f" cx="122" cy="132" r="13"/><circle class="f" cx="202" cy="132" r="13"/><path class="f" d="M104 120H220L212 108H112Z"/><path class="s" d="M140 108V93H150M170 108V93H180M206 108V86"/><path class="f" d="M196 84A14 14 0 0 1 222 80Z"/>`+T(20,26,"Lunar Roving Vehicle","start","lb")+T(20,42,"≈ 210 kg · ≈ 13 km/h"),
+rocks16:()=>`<path class="hill" d="M0 130Q60 90 120 118Q190 70 250 110Q290 92 320 104V180H0Z"/><path class="f" d="M150 150l8-14 14-2 8 12-6 6zM180 152l6-10 12 0 6 9-4 3z"/>`+T(20,26,"Descartes-Hochland","start","lb")+T(20,42,"≈ 95 kg Gestein"),
+apollo17:()=>{let f="";const pts=[[60,150],[84,146],[108,151],[132,146],[156,151],[180,146],[204,150]];pts.forEach(([x,y])=>f+=`<ellipse class="f" style="stroke:var(--faint)" cx="${x}" cy="${y}" rx="7" ry="3"/>`);return MG(136)+f+`<path class="s" d="M236 120L226 140M276 120L286 140"/><rect class="f" x="234" y="104" width="44" height="18"/>`+T(20,26,"Eugene Cernan, 14.12.1972","start","lb")+T(20,42,"letzter Schritt auf dem Mond")},
+skylab:()=>ER(160,258,96)+`<rect class="sol" x="140" y="44" width="42" height="34"/><rect class="f" x="96" y="78" width="140" height="28" rx="4"/><path class="s" d="M96 92H70"/><path class="sol" d="M70 92L50 72L60 66L70 82ZM70 92L90 72L80 66L70 82ZM70 92L50 112L60 118L70 102ZM70 92L90 112L80 118L70 102Z"/>`+T(20,26,"Skylab","start","lb")+T(20,42,"bis zu 84 Tage am Stück"),
+astp:()=>CSM(110,90,16)+`<rect class="f" x="125" y="84" width="22" height="12"/><circle class="f" cx="158" cy="90" r="11"/><path class="f" d="M169 82H188V98H169Z"/><rect class="f" x="188" y="81" width="26" height="18"/><rect class="sol" x="196" y="52" width="10" height="28"/><rect class="sol" x="196" y="100" width="10" height="28"/>`+T(100,124,"Apollo","middle","lb")+T(190,148,"Sojus","middle","lb")+T(20,26,"Händedruck im All","start","lb"),
+voyager:()=>{const S=[30,150];const pl=[["J",60,50],["S",100,40],["U",140,30],["N",180,22]].map(([n,r,a])=>[n,r,S[0]+r*Math.cos(a*Math.PI/180),S[1]-r*Math.sin(a*Math.PI/180)]);let o="";pl.forEach(([n,r,x,y])=>{o+=`<circle class="o" cx="${S[0]}" cy="${S[1]}" r="${r}"/><circle class="f" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"/>`+T((x+6).toFixed(1),(y-7).toFixed(1),n,"start","la")});const p=pl.map(q=>q[2].toFixed(1)+" "+q[3].toFixed(1));return `<circle class="sun" cx="30" cy="150" r="13"/>`+o+`<path class="a" d="M50 140L${p[0]}L${p[1]}L${p[2]}L${p[3]}L312 92"/><path class="a" stroke-dasharray="5 4" d="M${p[1]}L150 14"/>`+T(222,146,"— Voyager 2")+T(222,162,"- - Voyager 1")+T(20,24,"Start 1977","start","lb")}
+};
+
+/* ---------- Logik ---------- */
+let sc=[0,0];const SC=EV.map(e=>{if(e.p==="u")sc[0]++;if(e.p==="s")sc[1]++;return [...sc]});
+const YEARS=[...new Set(EV.map(e=>e.y))];
+const $=id=>document.getElementById(id);
+let cur=0,last=[0,0];
+
+$("rail").innerHTML=YEARS.map(y=>{const dots=EV.filter(e=>e.y===y).map(e=>`<i style="background:${CO[e.c][1]}"></i>`).join("");return `<button class="yr" type="button" data-y="${y}" aria-current="false"><span>${y}</span><span class="dots">${dots}</span></button>`}).join("");
+$("rail").addEventListener("click",e=>{const b=e.target.closest(".yr");if(!b)return;const i=EV.findIndex(v=>v.y===+b.dataset.y);go(i)});
+$("tabs").addEventListener("click",e=>{const b=e.target.closest(".tab");if(b)go(+b.dataset.i)});
+$("prev").onclick=()=>go(cur-1);$("next").onclick=()=>go(cur+1);
+
+let html="";CH.forEach((c,ci)=>{const items=EV.map((e,i)=>[e,i]).filter(([e])=>e.ch===ci);html+=`<div><h4>${ci+1}. ${c}</h4><ul>`+items.map(([e,i])=>`<li><button class="row" type="button" data-i="${i}" aria-current="false"><span class="d">${e.d}</span><i style="background:${CO[e.c][1]}"></i><span>${e.t}</span><span class="st">${e.p?"★":""}</span></button></li>`).join("")+`</ul></div>`});
+$("chapters").innerHTML=html;
+$("chapters").addEventListener("click",e=>{const b=e.target.closest(".row");if(!b)return;go(+b.dataset.i);$("console").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"})});
+
+function bump(el){el.classList.add("bump");setTimeout(()=>el.classList.remove("bump"),260)}
+function go(i,silent){
+  if(i<0||i>=EV.length)return;cur=i;const e=EV[i],col=CO[e.c][1];
+  const s=SC[i];$("s1").textContent=s[0];$("s2").textContent=s[1];
+  if(s[0]!==last[0])bump($("s1"));if(s[1]!==last[1])bump($("s2"));last=s;
+  let lp=-1;for(let k=i;k>=0;k--)if(EV[k].p){lp=k;break}
+  $("capt").textContent=lp<0?"noch keiner Premiere":EV[lp].t;
+  $("chapn").textContent=(e.ch+1)+" von "+CH.length;$("chapt").textContent=CH[e.ch];
+  document.querySelectorAll(".yr").forEach(b=>{const on=+b.dataset.y===e.y;b.setAttribute("aria-current",on);if(on&&!silent){const r=$("rail");r.scrollTo({left:b.offsetLeft-r.clientWidth/2+b.clientWidth/2})}});
+  const same=EV.map((v,k)=>[v,k]).filter(([v])=>v.y===e.y);
+  $("tabs").innerHTML=same.length>1?same.map(([v,k])=>`<button class="tab" type="button" data-i="${k}" aria-current="${k===i}" style="--c:${CO[v.c][1]}">${v.t}</button>`).join(""):"";
+  $("tabs").hidden=same.length<2;
+  $("stage").style.setProperty("--c",col);
+  $("fig").innerHTML=`<svg viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">${D[e.img]()}</svg>`;
+  $("pill").querySelector("span").textContent=CO[e.c][0];$("date").textContent=e.d;
+  $("title").textContent=e.t;$("text").textContent=e.x;
+  $("prem").hidden=!e.p;if(e.p)$("premw").textContent="Punkt für "+(e.p==="u"?"die UdSSR":"die USA")+" · neuer Stand "+s[0]+" : "+s[1];
+  $("count").textContent=(i+1)+" / "+EV.length;$("prev").disabled=i===0;$("next").disabled=i===EV.length-1;
+  document.querySelectorAll(".row").forEach(b=>b.setAttribute("aria-current",+b.dataset.i===i));
+  if(!silent){try{history.replaceState(null,"","#"+e.id)}catch(_){}}
+}
+document.addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest("input,textarea"))return;if(e.key==="ArrowRight")go(cur+1);if(e.key==="ArrowLeft")go(cur-1)});
+let tx=null;$("fig").addEventListener("touchstart",e=>{tx=e.touches[0].clientX},{passive:true});
+$("fig").addEventListener("touchend",e=>{if(tx===null)return;const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>45)go(cur+(dx<0?1:-1));tx=null});
+const start=EV.findIndex(e=>e.id===location.hash.slice(1));
+go(start>=0?start:EV.findIndex(e=>e.id==="sputnik"),true);
+window.addEventListener("hashchange",()=>{const k=EV.findIndex(e=>e.id===location.hash.slice(1));if(k>=0&&k!==cur)go(k,true)});
+</script>
+
+</body></html>
